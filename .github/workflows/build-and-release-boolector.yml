@@ -78,7 +78,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: boolector-debian10   # explicit but optional
+          name: boolector-debian10   # extracts into $GITHUB_WORKSPACE
 
       - name: List files after artifact download
         run: |
@@ -90,8 +90,8 @@ jobs:
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            boolector-debian10/libboolector-debian10.so \
-            boolector-debian10/libboolector-debian10.so.sha256 \
-            boolector-debian10/COPYING \
+            libboolector-debian10.so \
+            libboolector-debian10.so.sha256 \
+            COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME"
