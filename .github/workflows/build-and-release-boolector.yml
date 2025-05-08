@@ -76,6 +76,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: boolector-debian10
+          path: .
 
       - name: Create GitHub release
         env:
@@ -83,8 +84,8 @@ jobs:
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            boolector-debian10/debian10-artifacts/libboolector-debian10.so \
-            boolector-debian10/debian10-artifacts/libboolector-debian10.so.sha256 \
-            boolector-debian10/debian10-artifacts/COPYING \
+            debian10-artifacts/libboolector-debian10.so \
+            debian10-artifacts/libboolector-debian10.so.sha256 \
+            debian10-artifacts/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME"
