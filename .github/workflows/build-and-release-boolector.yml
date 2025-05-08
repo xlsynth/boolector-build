@@ -1,0 +1,78 @@
+name: Build and Release Boolector DSO
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git gcc g++ libc6-dev libstdc++-8-dev libssl-dev libffi-dev make curl cmake lld ca-certificates
+
+      - name: Download and build Boolector 3.2.2
+        run: |
+          git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
+          cd boolector
+          ./contrib/setup-lingeling.sh
+          ./contrib/setup-btor2tools.sh
+          mkdir -p build
+          cd build
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
+          make
+
+      - name: Set up Rust toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          . $HOME/.cargo/env
+
+      - name: Test Rust bindings (boolector-rs)
+        run: |
+          . $HOME/.cargo/env
+          git clone https://github.com/cdisselkoen/boolector-rs
+          cd boolector-rs
+          export LIBRARY_PATH=$GITHUB_WORKSPACE/boolector/build/lib:$LIBRARY_PATH
+          export LD_LIBRARY_PATH=$GITHUB_WORKSPACE/boolector/build/lib:$LD_LIBRARY_PATH
+          cargo test
+
+      - name: Create artifact directory
+        run: mkdir -p debian10-artifacts
+
+      - name: Copy Boolector DSO to artifact directory
+        run: |
+          cp boolector/build/lib/libboolector.so debian10-artifacts/libboolector-debian10.so
+          sha256sum debian10-artifacts/libboolector-debian10.so > debian10-artifacts/libboolector-debian10.so.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: boolector-debian10
+          path: debian10-artifacts/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: boolector-debian10
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: boolector-debian10-${{ github.sha }}
+        run: |
+          gh release create "$TAG_NAME" \
+            debian10-artifacts/libboolector-debian10.so \
+            debian10-artifacts/libboolector-debian10.so.sha256 \
+            --title "Release $TAG_NAME" \
+            --notes "Automated release of $TAG_NAME" 
