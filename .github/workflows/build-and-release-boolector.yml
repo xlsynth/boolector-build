@@ -45,6 +45,9 @@ jobs:
       - name: Create artifact directory
         run: mkdir -p debian10-artifacts
 
+      - name: Copy Boolector COPYING to artifact directory
+        run: cp boolector/COPYING debian10-artifacts/
+
       - name: Copy Boolector DSO to artifact directory
         run: |
           cp boolector/build/lib/libboolector.so debian10-artifacts/libboolector-debian10.so
