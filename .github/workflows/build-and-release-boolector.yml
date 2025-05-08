@@ -54,7 +54,7 @@ jobs:
           sha256sum debian10-artifacts/libboolector-debian10.so > debian10-artifacts/libboolector-debian10.so.sha256
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: boolector-debian10
           path: debian10-artifacts/
@@ -65,7 +65,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: boolector-debian10
 
