@@ -21,7 +21,7 @@ jobs:
       - name: Symlink python to python3
         run: ln -s /usr/bin/python3 /usr/bin/python
 
-      - name: Download and build Boolector 3.2.2
+      - name: Download and build Boolector 3.2.2
         run: |
           git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
           cd boolector
@@ -42,7 +42,7 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
 
-      - name: Test Rust bindings (boolector-rs)
+      - name: Test Rust bindings (boolector‑rs)
         run: |
           . "$HOME/.cargo/env"
           git clone https://github.com/cdisselkoen/boolector-rs
@@ -77,6 +77,8 @@ jobs:
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
+        with:
+          name: boolector-debian10   # explicit but optional
 
       - name: List files after artifact download
         run: |
@@ -88,8 +90,8 @@ jobs:
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            boolector-debian10/debian10-artifacts/libboolector-debian10.so \
-            boolector-debian10/debian10-artifacts/libboolector-debian10.so.sha256 \
-            boolector-debian10/debian10-artifacts/COPYING \
+            boolector-debian10/libboolector-debian10.so \
+            boolector-debian10/libboolector-debian10.so.sha256 \
+            boolector-debian10/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME"
