@@ -9,18 +9,20 @@ jobs:
     container: debian:10
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+      # Checkout source
+      - uses: actions/checkout@v4
 
+      # System dependencies
       - name: Set up dependencies
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git gcc g++ libc6-dev libstdc++-8-dev libssl-dev libffi-dev make curl cmake lld ca-certificates python3
 
-      - name: Symlink python to python3
+      - name: Symlink python → python3
         run: ln -s /usr/bin/python3 /usr/bin/python
 
+      # Build Boolector
       - name: Download and build Boolector 3.2.2
         run: |
           git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
@@ -32,11 +34,12 @@ jobs:
           cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
           make
 
-      - name: Run Boolector CMake tests
+      - name: Run Boolector CTest suite
         run: |
           cd boolector/build
           ctest --output-on-failure
 
+      # Rust bindings sanity‑check
       - name: Set up Rust toolchain
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -51,17 +54,14 @@ jobs:
           export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/boolector/build/lib:$LD_LIBRARY_PATH"
           cargo test
 
-      - name: Create artifact directory
-        run: mkdir -p debian10-artifacts
-
-      - name: Copy Boolector COPYING to artifact directory
-        run: cp boolector/COPYING debian10-artifacts/
-
-      - name: Copy Boolector DSO to artifact directory
+      # Collect artifacts
+      - name: Prepare artifact directory
         run: |
+          mkdir -p debian10-artifacts
+          cp boolector/COPYING debian10-artifacts/
           cp boolector/build/lib/libboolector.so debian10-artifacts/libboolector-debian10.so
-          sha256sum debian10-artifacts/libboolector-debian10.so > \
-            debian10-artifacts/libboolector-debian10.so.sha256
+          sha256sum debian10-artifacts/libboolector-debian10.so \
+            > debian10-artifacts/libboolector-debian10.so.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -75,12 +75,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
 
     steps:
+      # Re‑checkout so gh sees a Git repo
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Download into its own directory
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: boolector-debian10   # extracts into $GITHUB_WORKSPACE
+          name: boolector-debian10
+          path: boolector-debian10
 
-      - name: List files after artifact download
+      - name: List downloaded files
         run: |
           echo "Workspace after artifact download:" && ls -lR
 
@@ -90,8 +97,8 @@ jobs:
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            libboolector-debian10.so \
-            libboolector-debian10.so.sha256 \
-            COPYING \
+            boolector-debian10/libboolector-debian10.so \
+            boolector-debian10/libboolector-debian10.so.sha256 \
+            boolector-debian10/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME"
