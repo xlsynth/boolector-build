@@ -15,7 +15,10 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            git gcc g++ libc6-dev libstdc++-8-dev libssl-dev libffi-dev make curl cmake lld ca-certificates
+            git gcc g++ libc6-dev libstdc++-8-dev libssl-dev libffi-dev make curl cmake lld ca-certificates python3
+
+      - name: Symlink python to python3
+        run: ln -s /usr/bin/python3 /usr/bin/python
 
       - name: Download and build Boolector 3.2.2
         run: |
@@ -27,6 +30,11 @@ jobs:
           cd build
           cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
           make
+
+      - name: Run Boolector CMake tests
+        run: |
+          cd boolector/build
+          ctest --output-on-failure
 
       - name: Set up Rust toolchain
         run: |
@@ -75,7 +83,8 @@ jobs:
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            debian10-artifacts/libboolector-debian10.so \
-            debian10-artifacts/libboolector-debian10.so.sha256 \
+            boolector-debian10/debian10-artifacts/libboolector-debian10.so \
+            boolector-debian10/debian10-artifacts/libboolector-debian10.so.sha256 \
+            boolector-debian10/debian10-artifacts/COPYING \
             --title "Release $TAG_NAME" \
-            --notes "Automated release of $TAG_NAME" 
+            --notes "Automated release of $TAG_NAME"
