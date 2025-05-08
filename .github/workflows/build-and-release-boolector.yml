@@ -78,14 +78,18 @@ jobs:
           name: boolector-debian10
           path: .
 
+      - name: Debug: List files after artifact download
+        run: |
+          echo "Workspace after artifact download:" && ls -lR
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: boolector-debian10-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            debian10-artifacts/libboolector-debian10.so \
-            debian10-artifacts/libboolector-debian10.so.sha256 \
-            debian10-artifacts/COPYING \
+            boolector-debian10/debian10-artifacts/libboolector-debian10.so \
+            boolector-debian10/debian10-artifacts/libboolector-debian10.so.sha256 \
+            boolector-debian10/debian10-artifacts/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME"
