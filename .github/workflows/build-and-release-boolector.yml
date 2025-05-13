@@ -25,7 +25,7 @@ jobs:
       - name: Symlink python → python3
         run: ln -s /usr/bin/python3 /usr/bin/python
 
-      - name: Download and build Boolector 3.2.2
+      - name: Download and build Boolector 3.2.2
         run: |
           git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
           cd boolector
@@ -67,8 +67,61 @@ jobs:
           name: boolector-debian10
           path: debian10-artifacts/
 
+  build-osx-arm64:
+    name: Build for macOS ARM64
+    runs-on: macos-14 # ARM64 runner
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          brew install cmake openssl libffi python
+
+      - name: Download and build Boolector 3.2.2
+        run: |
+          git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
+          cd boolector
+          ./contrib/setup-lingeling.sh
+          ./contrib/setup-btor2tools.sh
+          mkdir -p build && cd build
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+          make
+
+      - name: Run Boolector tests
+        run: |
+          cd boolector/build
+          ctest --output-on-failure
+
+      - name: Set up Rust toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Test Rust bindings (boolector‑rs)
+        run: |
+          . "$HOME/.cargo/env"
+          git clone https://github.com/cdisselkoen/boolector-rs
+          cd boolector-rs
+          export LIBRARY_PATH="$GITHUB_WORKSPACE/boolector/build/lib:$LIBRARY_PATH"
+          export DYLD_FALLBACK_LIBRARY_PATH="$GITHUB_WORKSPACE/boolector/build/lib:$DYLD_FALLBACK_LIBRARY_PATH"
+          cargo test
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p osx-arm64-artifacts
+          cp boolector/COPYING osx-arm64-artifacts/
+          cp boolector/build/lib/libboolector.dylib osx-arm64-artifacts/libboolector-osx-arm64.dylib
+          shasum -a 256 osx-arm64-artifacts/libboolector-osx-arm64.dylib \
+            > osx-arm64-artifacts/libboolector-osx-arm64.dylib.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: boolector-osx-arm64
+          path: osx-arm64-artifacts/
+
   release:
-    needs: build
+    needs: [build, build-osx-arm64]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
@@ -83,17 +136,29 @@ jobs:
           name: boolector-debian10
           path: boolector-debian10
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: boolector-osx-arm64
+          path: boolector-osx-arm64
+
       - name: List downloaded files
-        run: ls -lR boolector-debian10
+        run: |
+          echo "--- Debian 10 artifacts ---"
+          ls -lR boolector-debian10
+          echo "--- macOS ARM64 artifacts ---"
+          ls -lR boolector-osx-arm64
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: boolector-debian10-${{ github.sha }}
+          TAG_NAME: boolector-binaries-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
             boolector-debian10/libboolector-debian10.so \
             boolector-debian10/libboolector-debian10.so.sha256 \
             boolector-debian10/COPYING \
+            boolector-osx-arm64/libboolector-osx-arm64.dylib \
+            boolector-osx-arm64/libboolector-osx-arm64.dylib.sha256 \
+            boolector-osx-arm64/COPYING \
             --title "Release $TAG_NAME" \
-            --notes "Automated release of $TAG_NAME"
+            --notes "Automated release of $TAG_NAME. Includes Debian 10 (amd64) and macOS (arm64) binaries."
