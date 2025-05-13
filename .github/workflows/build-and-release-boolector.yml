@@ -32,7 +32,9 @@ jobs:
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
-          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
+          echo "Configuring Boolector with CMake (Python bindings disabled, setting policy version minimum)..."
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DBTOR_ENABLE_PYTHON=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          echo "Building Boolector..."
           make
 
       - name: Run Boolector tests
@@ -85,7 +87,9 @@ jobs:
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
-          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+          echo "Configuring Boolector with CMake (Python bindings disabled, setting policy version minimum)..."
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DBTOR_ENABLE_PYTHON=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          echo "Building Boolector..."
           make
 
       - name: Run Boolector tests
