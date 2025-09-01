@@ -31,7 +31,7 @@ jobs:
           dnf config-manager --set-enabled powertools || true
           dnf -y groupinstall "Development Tools"
           dnf -y install \
-            git autoconf automake bison flex gperf readline-devel \
+            git autoconf automake bison flex gperf \
             ca-certificates curl m4
 
       - name: Clone and build Icarus Verilog
@@ -41,7 +41,7 @@ jobs:
           echo "Using Icarus Verilog ref: $IVERILOG_REF"
           git checkout --detach "$IVERILOG_REF"
           sh autoconf.sh
-          ./configure --prefix=/usr/local
+          ./configure --prefix=/usr/local READLINE=0
           make -j"$(nproc)"
           make install DESTDIR="$GITHUB_WORKSPACE/iverilog-install"
 
@@ -51,8 +51,11 @@ jobs:
           cp iverilog/COPYING rocky8-artifacts/
           cp iverilog-install/usr/local/bin/iverilog rocky8-artifacts/iverilog-rocky8
           cp iverilog-install/usr/local/bin/vvp rocky8-artifacts/vvp-rocky8
+          # Package runtime support files required by iverilog (ivl, ivlpp, etc.)
+          tar -C iverilog-install/usr/local/lib -czf rocky8-artifacts/ivl-rocky8.tar.gz ivl
           sha256sum rocky8-artifacts/iverilog-rocky8 > rocky8-artifacts/iverilog-rocky8.sha256
           sha256sum rocky8-artifacts/vvp-rocky8 > rocky8-artifacts/vvp-rocky8.sha256
+          sha256sum rocky8-artifacts/ivl-rocky8.tar.gz > rocky8-artifacts/ivl-rocky8.tar.gz.sha256
 
       - uses: actions/upload-artifact@v4
         with:
@@ -62,7 +65,7 @@ jobs:
   
 
   iverilog-release:
-    needs: [iverilog-build]
+    needs: [iverilog-smoke-test]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
@@ -91,8 +94,70 @@ jobs:
             iverilog-rocky8/iverilog-rocky8.sha256 \
             iverilog-rocky8/vvp-rocky8 \
             iverilog-rocky8/vvp-rocky8.sha256 \
+            iverilog-rocky8/ivl-rocky8.tar.gz \
+            iverilog-rocky8/ivl-rocky8.tar.gz.sha256 \
             iverilog-rocky8/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME. Includes Rocky Linux 8 (x86_64) Icarus Verilog binaries (iverilog and vvp)."
+
+
+  iverilog-smoke-test:
+    name: Smoke test released Icarus Verilog on Ubuntu
+    needs: [iverilog-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime dependencies (none required)
+        run: echo "Using statically linked readline; no extra runtime deps."
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: iverilog-rocky8
+          path: artifacts
+
+      - name: Stage prefix
+        run: |
+          set -euo pipefail
+          PREFIX="$RUNNER_TEMP/iverilog-root"
+          mkdir -p "$PREFIX/bin" "$PREFIX/lib"
+          cp artifacts/iverilog-rocky8 "$PREFIX/bin/iverilog"
+          cp artifacts/vvp-rocky8 "$PREFIX/bin/vvp"
+          chmod +x "$PREFIX/bin/iverilog" "$PREFIX/bin/vvp"
+          tar -xzf artifacts/ivl-rocky8.tar.gz -C "$PREFIX/lib"
+          echo "PREFIX=$PREFIX" >> "$GITHUB_ENV"
+
+      - name: Smoke test compile and run
+        run: |
+          set -euo pipefail
+          mkdir -p test
+          cat > test/add.v <<'EOF'
+          module add(input [31:0] a, input [31:0] b, output [31:0] y);
+            assign y = a + b;
+          endmodule
+          EOF
+          cat > test/tb.v <<'EOF'
+          module tb;
+            reg [31:0] a, b;
+            wire [31:0] y;
+            add dut(.a(a), .b(b), .y(y));
+            initial begin
+              a = 5; b = 7;
+              #1 $display("y=%0d", y);
+              if (y != 12) begin
+                $display("FAIL");
+                $finish(1);
+              end
+              $display("PASS");
+              $finish(0);
+            end
+          endmodule
+          EOF
+          "$PREFIX/bin/iverilog" -B "$PREFIX" -o test/a.out test/tb.v test/add.v
+          output=$("$PREFIX/bin/vvp" test/a.out)
+          echo "$output"
+          echo "$output" | grep -q 'PASS'
 
 
