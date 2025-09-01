@@ -26,13 +26,13 @@ jobs:
 
       - name: Set up dependencies
         run: |
-          dnf -y upgrade --refresh
+          dnf -y distro-sync --refresh
           dnf -y install dnf-plugins-core
           dnf config-manager --set-enabled powertools || true
-          dnf -y groupinstall "Development Tools"
+          dnf -y groupinstall "Development Tools" --nobest
           dnf -y install \
-            git autoconf automake bison flex gperf \
-            ca-certificates curl m4
+            git autoconf automake bison flex gperf m4 \
+            ca-certificates curl nodejs --nobest
 
       - name: Clone and build Icarus Verilog
         run: |
