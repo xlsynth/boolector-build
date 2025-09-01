@@ -1,0 +1,95 @@
+name: Build and Release Icarus Verilog
+
+# ←‑‑ give the default GITHUB_TOKEN write access to repository contents
+permissions:
+  contents: write
+  packages: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      iverilog_ref:
+        description: 'Icarus Verilog git ref to build (branch, tag, or SHA)'
+        required: false
+        default: ea26587b5ef485f2ca82a3e4364e58ec3307240f
+
+env:
+  IVERILOG_REF: ${{ github.event.inputs.iverilog_ref }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git gcc g++ make autoconf automake bison flex gperf libreadline-dev \
+            ca-certificates curl
+
+      - name: Clone and build Icarus Verilog
+        run: |
+          git clone --depth 1 https://github.com/steveicarus/iverilog
+          cd iverilog
+          git fetch --depth 1 origin "$IVERILOG_REF"
+          git checkout FETCH_HEAD
+          sh autoconf.sh
+          ./configure --prefix=/usr/local
+          make -j"$(nproc)"
+          make install DESTDIR="$GITHUB_WORKSPACE/iverilog-install"
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p debian10-artifacts
+          cp iverilog/COPYING debian10-artifacts/
+          cp iverilog-install/usr/local/bin/iverilog debian10-artifacts/iverilog-debian10
+          cp iverilog-install/usr/local/bin/vvp debian10-artifacts/vvp-debian10
+          sha256sum debian10-artifacts/iverilog-debian10 > debian10-artifacts/iverilog-debian10.sha256
+          sha256sum debian10-artifacts/vvp-debian10 > debian10-artifacts/vvp-debian10.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iverilog-debian10
+          path: debian10-artifacts/
+
+  
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: iverilog-debian10
+          path: iverilog-debian10
+
+      - name: List downloaded files
+        run: |
+          echo "--- Debian 10 artifacts ---"
+          ls -lR iverilog-debian10
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: iverilog-binaries-${{ env.IVERILOG_REF }}
+        run: |
+          gh release create "$TAG_NAME" \
+            iverilog-debian10/iverilog-debian10 \
+            iverilog-debian10/iverilog-debian10.sha256 \
+            iverilog-debian10/vvp-debian10 \
+            iverilog-debian10/vvp-debian10.sha256 \
+            iverilog-debian10/COPYING \
+            --title "Release $TAG_NAME" \
+            --notes "Automated release of $TAG_NAME. Includes Debian 10 (amd64) Icarus Verilog binaries (iverilog and vvp)."
+
+
