@@ -30,7 +30,7 @@ jobs:
           dnf config-manager --set-enabled powertools || true
           dnf -y groupinstall "Development Tools" --nobest
           dnf -y module enable python39
-          dnf -y install git cmake python39 python39-pip gmp-devel curl ca-certificates glibc-static libstdc++-static
+          dnf -y install git cmake python39 python39-pip gmp-devel curl ca-certificates
           python3.9 -m pip install --upgrade pip
           python3.9 -m pip install "meson>=0.64" "ninja>=1.10"
           echo "/usr/local/bin" >> $GITHUB_PATH
