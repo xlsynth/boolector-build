@@ -74,7 +74,11 @@ jobs:
       - name: Set up dependencies
         run: |
           brew update
-          brew install cmake ninja meson gmp python
+          for p in cmake ninja meson gmp python; do
+            if ! brew list --versions "$p" >/dev/null 2>&1; then
+              brew install "$p"
+            fi
+          done
 
       - name: Clone and build Bitwuzla
         run: |
