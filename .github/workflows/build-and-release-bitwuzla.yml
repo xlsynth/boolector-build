@@ -1,0 +1,149 @@
+name: Build and Release Bitwuzla
+
+permissions:
+  contents: write
+  packages: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      bitwuzla_ref:
+        description: 'Bitwuzla git ref to build (branch, tag, or SHA)'
+        required: false
+        default: b29041fbbe6318cb4c19a6e11c7616efc4cb4d32
+
+env:
+  BITWUZLA_REF: ${{ inputs.bitwuzla_ref || 'b29041fbbe6318cb4c19a6e11c7616efc4cb4d32' }}
+
+jobs:
+  bitwuzla-build-linux:
+    runs-on: ubuntu-latest
+    container: rockylinux:8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          dnf -y distro-sync --refresh
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled powertools || true
+          dnf -y groupinstall "Development Tools" --nobest
+          dnf -y module enable python39
+          dnf -y install git cmake python39 python39-pip gmp-devel curl ca-certificates glibc-static libstdc++-static
+          python3.9 -m pip install --upgrade pip
+          python3.9 -m pip install "meson>=0.64" "ninja>=1.10"
+          echo "/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Clone and build Bitwuzla
+        run: |
+          set -euo pipefail
+          git clone https://github.com/bitwuzla/bitwuzla
+          cd bitwuzla
+          git checkout --detach "$BITWUZLA_REF"
+          # Prefer shared libs to avoid static libc/c++ issues
+          python3.9 ./configure.py --shared
+          cd build
+          ninja
+
+      - name: Prepare artifact directory
+        run: |
+          set -euo pipefail
+          mkdir -p rocky8-artifacts
+          # License file (Bitwuzla repo uses LICENSE)
+          if [ -f bitwuzla/LICENSE ]; then cp bitwuzla/LICENSE rocky8-artifacts/; fi
+          if [ -f bitwuzla/COPYING ]; then cp bitwuzla/COPYING rocky8-artifacts/; fi
+          # Locate shared library and copy with conventional name
+          LIB_SO=$(find bitwuzla/build -type f -name 'libbitwuzla*.so' | head -n1)
+          if [ -z "$LIB_SO" ]; then echo "libbitwuzla.so not found"; exit 1; fi
+          cp "$LIB_SO" rocky8-artifacts/libbitwuzla-rocky8.so
+          sha256sum rocky8-artifacts/libbitwuzla-rocky8.so > rocky8-artifacts/libbitwuzla-rocky8.so.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bitwuzla-rocky8
+          path: rocky8-artifacts/
+
+  bitwuzla-build-macos:
+    name: Build for macOS ARM64
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          brew update
+          brew install cmake ninja meson gmp python
+
+      - name: Clone and build Bitwuzla
+        run: |
+          set -euo pipefail
+          git clone https://github.com/bitwuzla/bitwuzla
+          cd bitwuzla
+          git checkout --detach "$BITWUZLA_REF"
+          python3 ./configure.py --shared
+          cd build
+          ninja
+
+      - name: Prepare artifact directory
+        run: |
+          set -euo pipefail
+          mkdir -p osx-arm64-artifacts
+          if [ -f bitwuzla/LICENSE ]; then cp bitwuzla/LICENSE osx-arm64-artifacts/; fi
+          if [ -f bitwuzla/COPYING ]; then cp bitwuzla/COPYING osx-arm64-artifacts/; fi
+          LIB_DYLIB=$(find bitwuzla/build -type f -name 'libbitwuzla*.dylib' | head -n1)
+          if [ -z "$LIB_DYLIB" ]; then echo "libbitwuzla.dylib not found"; exit 1; fi
+          cp "$LIB_DYLIB" osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib
+          shasum -a 256 osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib > osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bitwuzla-osx-arm64
+          path: osx-arm64-artifacts/
+
+  bitwuzla-release:
+    needs: [bitwuzla-build-linux, bitwuzla-build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: bitwuzla-rocky8
+          path: bitwuzla-rocky8
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: bitwuzla-osx-arm64
+          path: bitwuzla-osx-arm64
+
+      - name: List downloaded files
+        run: |
+          echo "--- Rocky Linux 8 artifacts ---"
+          ls -lR bitwuzla-rocky8
+          echo "--- macOS ARM64 artifacts ---"
+          ls -lR bitwuzla-osx-arm64
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: bitwuzla-binaries-${{ env.BITWUZLA_REF }}
+        run: |
+          gh release create "$TAG_NAME" \
+            bitwuzla-rocky8/libbitwuzla-rocky8.so \
+            bitwuzla-rocky8/libbitwuzla-rocky8.so.sha256 \
+            bitwuzla-rocky8/LICENSE \
+            bitwuzla-rocky8/COPYING \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib.sha256 \
+            bitwuzla-osx-arm64/LICENSE \
+            bitwuzla-osx-arm64/COPYING \
+            --title "Release $TAG_NAME" \
+            --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) Bitwuzla shared libraries."
+
+
