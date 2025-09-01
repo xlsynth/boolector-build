@@ -141,11 +141,9 @@ jobs:
           gh release create "$TAG_NAME" \
             bitwuzla-rocky8/libbitwuzla-rocky8.so \
             bitwuzla-rocky8/libbitwuzla-rocky8.so.sha256 \
-            bitwuzla-rocky8/LICENSE \
             bitwuzla-rocky8/COPYING \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib.sha256 \
-            bitwuzla-osx-arm64/LICENSE \
             bitwuzla-osx-arm64/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) Bitwuzla shared libraries."
