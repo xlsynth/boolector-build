@@ -121,13 +121,11 @@ jobs:
       - name: Stage prefix
         run: |
           set -euo pipefail
-          PREFIX="$RUNNER_TEMP/iverilog-root"
-          mkdir -p "$PREFIX/bin" "$PREFIX/lib"
-          cp artifacts/iverilog-rocky8 "$PREFIX/bin/iverilog"
-          cp artifacts/vvp-rocky8 "$PREFIX/bin/vvp"
-          chmod +x "$PREFIX/bin/iverilog" "$PREFIX/bin/vvp"
-          tar -xzf artifacts/ivl-rocky8.tar.gz -C "$PREFIX/lib"
-          echo "PREFIX=$PREFIX" >> "$GITHUB_ENV"
+          sudo mkdir -p /usr/local/bin /usr/local/lib
+          sudo cp artifacts/iverilog-rocky8 /usr/local/bin/iverilog
+          sudo cp artifacts/vvp-rocky8 /usr/local/bin/vvp
+          sudo chmod +x /usr/local/bin/iverilog /usr/local/bin/vvp
+          sudo tar -xzf artifacts/ivl-rocky8.tar.gz -C /usr/local/lib
 
       - name: Smoke test compile and run
         run: |
@@ -155,8 +153,8 @@ jobs:
             end
           endmodule
           EOF
-          "$PREFIX/bin/iverilog" -B "$PREFIX" -o test/a.out test/tb.v test/add.v
-          output=$("$PREFIX/bin/vvp" test/a.out)
+          iverilog -o test/a.out test/tb.v test/add.v
+          output=$(vvp test/a.out)
           echo "$output"
           echo "$output" | grep -q 'PASS'
 
