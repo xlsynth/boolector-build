@@ -22,7 +22,7 @@
   - Boolector: `boolector-binaries-${git-ref-built}` (commit SHA of this repo)
   - Icarus Verilog: `iverilog-binaries-${IVERILOG_REF}` (upstream ref provided to workflow)
 - Artifact filename: `${package-name}-${os-name}.${platform-ext}` (or no ext for executables)
-  - Examples: `libboolector-debian10.so`, `libboolector-osx-arm64.dylib`, `iverilog-debian10`, `vvp-debian10`
+  - Examples: `libboolector-debian10.so`, `libboolector-osx-arm64.dylib`, `iverilog-rocky8`, `vvp-rocky8`
 - Checksum filename: `${artifact-filename}.sha256`
 - License: include upstream `COPYING`/license file with each artifact set
 

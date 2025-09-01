@@ -14,29 +14,32 @@ on:
         default: ea26587b5ef485f2ca82a3e4364e58ec3307240f
 
 env:
-  IVERILOG_REF: ${{ github.event.inputs.iverilog_ref }}
+  IVERILOG_REF: ${{ inputs.iverilog_ref || 'ea26587b5ef485f2ca82a3e4364e58ec3307240f' }}
 
 jobs:
-  build:
+  iverilog-build:
     runs-on: ubuntu-latest
-    container: debian:10
+    container: rockylinux:8
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up dependencies
         run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            git gcc g++ make autoconf automake bison flex gperf libreadline-dev \
-            ca-certificates curl
+          dnf -y upgrade --refresh
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled powertools || true
+          dnf -y groupinstall "Development Tools"
+          dnf -y install \
+            git autoconf automake bison flex gperf readline-devel \
+            ca-certificates curl m4
 
       - name: Clone and build Icarus Verilog
         run: |
-          git clone --depth 1 https://github.com/steveicarus/iverilog
+          git clone https://github.com/steveicarus/iverilog
           cd iverilog
-          git fetch --depth 1 origin "$IVERILOG_REF"
-          git checkout FETCH_HEAD
+          echo "Using Icarus Verilog ref: $IVERILOG_REF"
+          git checkout --detach "$IVERILOG_REF"
           sh autoconf.sh
           ./configure --prefix=/usr/local
           make -j"$(nproc)"
@@ -44,22 +47,22 @@ jobs:
 
       - name: Prepare artifact directory
         run: |
-          mkdir -p debian10-artifacts
-          cp iverilog/COPYING debian10-artifacts/
-          cp iverilog-install/usr/local/bin/iverilog debian10-artifacts/iverilog-debian10
-          cp iverilog-install/usr/local/bin/vvp debian10-artifacts/vvp-debian10
-          sha256sum debian10-artifacts/iverilog-debian10 > debian10-artifacts/iverilog-debian10.sha256
-          sha256sum debian10-artifacts/vvp-debian10 > debian10-artifacts/vvp-debian10.sha256
+          mkdir -p rocky8-artifacts
+          cp iverilog/COPYING rocky8-artifacts/
+          cp iverilog-install/usr/local/bin/iverilog rocky8-artifacts/iverilog-rocky8
+          cp iverilog-install/usr/local/bin/vvp rocky8-artifacts/vvp-rocky8
+          sha256sum rocky8-artifacts/iverilog-rocky8 > rocky8-artifacts/iverilog-rocky8.sha256
+          sha256sum rocky8-artifacts/vvp-rocky8 > rocky8-artifacts/vvp-rocky8.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iverilog-debian10
-          path: debian10-artifacts/
+          name: iverilog-rocky8
+          path: rocky8-artifacts/
 
   
 
-  release:
-    needs: [build]
+  iverilog-release:
+    needs: [iverilog-build]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
@@ -70,13 +73,13 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: iverilog-debian10
-          path: iverilog-debian10
+          name: iverilog-rocky8
+          path: iverilog-rocky8
 
       - name: List downloaded files
         run: |
-          echo "--- Debian 10 artifacts ---"
-          ls -lR iverilog-debian10
+          echo "--- Rocky Linux 8 artifacts ---"
+          ls -lR iverilog-rocky8
 
       - name: Create GitHub release
         env:
@@ -84,12 +87,12 @@ jobs:
           TAG_NAME: iverilog-binaries-${{ env.IVERILOG_REF }}
         run: |
           gh release create "$TAG_NAME" \
-            iverilog-debian10/iverilog-debian10 \
-            iverilog-debian10/iverilog-debian10.sha256 \
-            iverilog-debian10/vvp-debian10 \
-            iverilog-debian10/vvp-debian10.sha256 \
-            iverilog-debian10/COPYING \
+            iverilog-rocky8/iverilog-rocky8 \
+            iverilog-rocky8/iverilog-rocky8.sha256 \
+            iverilog-rocky8/vvp-rocky8 \
+            iverilog-rocky8/vvp-rocky8.sha256 \
+            iverilog-rocky8/COPYING \
             --title "Release $TAG_NAME" \
-            --notes "Automated release of $TAG_NAME. Includes Debian 10 (amd64) Icarus Verilog binaries (iverilog and vvp)."
+            --notes "Automated release of $TAG_NAME. Includes Rocky Linux 8 (x86_64) Icarus Verilog binaries (iverilog and vvp)."
 
 
