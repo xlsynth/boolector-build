@@ -50,9 +50,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p rocky8-artifacts
-          # License file (Bitwuzla repo uses LICENSE)
-          if [ -f bitwuzla/LICENSE ]; then cp bitwuzla/LICENSE rocky8-artifacts/; fi
-          if [ -f bitwuzla/COPYING ]; then cp bitwuzla/COPYING rocky8-artifacts/; fi
+          # License
+          cp bitwuzla/COPYING rocky8-artifacts/COPYING
           # Locate shared library and copy with conventional name
           LIB_SO=$(find bitwuzla/build -type f -name 'libbitwuzla*.so' | head -n1)
           if [ -z "$LIB_SO" ]; then echo "libbitwuzla.so not found"; exit 1; fi
@@ -94,8 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p osx-arm64-artifacts
-          if [ -f bitwuzla/LICENSE ]; then cp bitwuzla/LICENSE osx-arm64-artifacts/; fi
-          if [ -f bitwuzla/COPYING ]; then cp bitwuzla/COPYING osx-arm64-artifacts/; fi
+          cp bitwuzla/COPYING osx-arm64-artifacts/COPYING
           LIB_DYLIB=$(find bitwuzla/build -type f -name 'libbitwuzla*.dylib' | head -n1)
           if [ -z "$LIB_DYLIB" ]; then echo "libbitwuzla.dylib not found"; exit 1; fi
           cp "$LIB_DYLIB" osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib
@@ -144,7 +142,6 @@ jobs:
             bitwuzla-rocky8/COPYING \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib.sha256 \
-            bitwuzla-osx-arm64/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) Bitwuzla shared libraries."
 
