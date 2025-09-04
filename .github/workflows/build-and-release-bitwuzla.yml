@@ -42,9 +42,15 @@ jobs:
           cd bitwuzla
           git checkout --detach "$BITWUZLA_REF"
           # Prefer shared libs to avoid static libc/c++ issues
+          awk -v n="$(($(wc -l < configure.py) - 4))" -v text="    build_opts.append(f'-Db_asneeded=false')" '
+            NR==n { print text }
+            { print }
+          ' configure.py > configure.py.tmp
+          mv configure.py.tmp configure.py
           python3.9 ./configure.py --shared
           cd build
           ninja
+          nm ./src/libbitwuzla.so | tail -30
 
       - name: Prepare artifact directory
         run: |
