@@ -111,6 +111,7 @@ jobs:
           mkdir -p osx-arm64-artifacts
           cp bitwuzla/COPYING osx-arm64-artifacts/bitwuzla.COPYING
           cp bitwuzla/subprojects/cadical-rel-2.1.2/LICENSE osx-arm64-artifacts/cadical.LICENSE
+          echo "$(find bitwuzla/build -type f -name '*.dylib')"
           LIB_DYLIB=$(find bitwuzla/build -type f -name 'libbitwuzla.dylib' | head -n1)
           if [ -z "$LIB_DYLIB" ]; then echo "libbitwuzla.dylib not found"; exit 1; fi
           cp "$LIB_DYLIB" osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib
