@@ -62,6 +62,7 @@ jobs:
           LIB_SO=$(realpath bitwuzla/build/src/libbitwuzla.so)
           if [ -z "$LIB_SO" ]; then echo "libbitwuzla.so not found"; exit 1; fi
           cp "$LIB_SO" rocky8-artifacts/libbitwuzla-rocky8.so
+          sha256sum rocky8-artifacts/libbitwuzla-rocky8.so > rocky8-artifacts/libbitwuzla-rocky8.so.sha256
           for s in bb bv ls; do
             src="bitwuzla/build/src/lib/libbitwuzla${s}.so"
             dest="rocky8-artifacts/libbitwuzla-rocky8${s}.so"
@@ -69,10 +70,10 @@ jobs:
             cp "$src" "$dest"
             sha256sum "$dest" > "${dest}.sha256"
           done
-          sha256sum rocky8-artifacts/libbitwuzla-rocky8.so > rocky8-artifacts/libbitwuzla-rocky8.so.sha256
           LIB_CADICAL_SO=$(realpath bitwuzla/build/subprojects/cadical-rel-2.1.2/src/libcadical.so)
           if [ -z "$LIB_CADICAL_SO" ]; then echo "libcadical.so not found"; exit 1; fi
           cp "$LIB_CADICAL_SO" rocky8-artifacts/libcadical-rocky8.so
+          sha256sum rocky8-artifacts/libcadical-rocky8.so > rocky8-artifacts/libcadical-rocky8.so.sha256
 
       - uses: actions/upload-artifact@v4
         with:
