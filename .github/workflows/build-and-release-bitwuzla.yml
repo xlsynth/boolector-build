@@ -65,7 +65,7 @@ jobs:
           sha256sum rocky8-artifacts/libbitwuzla-rocky8.so > rocky8-artifacts/libbitwuzla-rocky8.so.sha256
           for s in bb bv ls; do
             src="bitwuzla/build/src/lib/libbitwuzla${s}.so"
-            dest="rocky8-artifacts/libbitwuzla-rocky8${s}.so"
+            dest="rocky8-artifacts/libbitwuzla${s}-rocky8.so"
             if [ ! -f "$src" ]; then echo "libbitwuzla${s}.so not found"; exit 1; fi
             cp "$src" "$dest"
             sha256sum "$dest" > "${dest}.sha256"
@@ -117,10 +117,10 @@ jobs:
           cp "$LIB_DYLIB" osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib
           shasum -a 256 osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib > osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib.sha256
           for s in bb bv ls; do
-            f=$(find bitwuzla/build -type f \( -name "libbitwuzla${s}.dylib" -o -name "libbitwuzla${s}*.dylib" \) | head -n1)
+            f=$(find bitwuzla/build -type f \( -name "libbitwuzla${s}.dylib" -o -name "libbitwuzla${s}.*.dylib" \) | head -n1)
             if [ -z "${f:-}" ]; then echo "libbitwuzla${s}.dylib not found"; exit 1; fi
-            cp "$f" "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib"
-            shasum -a 256 "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib" > "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib.sha256"
+            cp "$f" "osx-arm64-artifacts/libbitwuzla${s}-osx-arm64.dylib"
+            shasum -a 256 "osx-arm64-artifacts/libbitwuzla${s}-osx-arm64.dylib" > "osx-arm64-artifacts/libbitwuzla${s}-osx-arm64.dylib.sha256"
           done
           LIB_CADICAL_DYLIB=$(find bitwuzla/build -type f -name 'libcadical.dylib' | head -n1)
           if [ -z "$LIB_CADICAL_DYLIB" ]; then echo "libcadical.dylib not found"; exit 1; fi
