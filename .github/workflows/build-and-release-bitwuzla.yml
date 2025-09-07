@@ -1,4 +1,4 @@
-name: Build and Release Bitwuzla
+name: Build and Release Bitwuzla and Associated CaDiCaL
 
 permissions:
   contents: write
@@ -56,14 +56,23 @@ jobs:
           set -euo pipefail
           mkdir -p rocky8-artifacts
           # License
-          cp bitwuzla/COPYING rocky8-artifacts/COPYING
+          cp bitwuzla/COPYING rocky8-artifacts/bitwuzla.COPYING
+          cp bitwuzla/subprojects/cadical-rel-2.1.2/LICENSE rocky8-artifacts/cadical.LICENSE
           # Locate shared library and copy with conventional name
           LIB_SO=$(realpath bitwuzla/build/src/libbitwuzla.so)
           if [ -z "$LIB_SO" ]; then echo "libbitwuzla.so not found"; exit 1; fi
-          echo "$LIB_SO"
-          echo "$(sha256sum $LIB_SO)"
           cp "$LIB_SO" rocky8-artifacts/libbitwuzla-rocky8.so
+          for s in bb bv ls; do
+            src="bitwuzla/build/src/lib/libbitwuzla${s}.so"
+            dest="rocky8-artifacts/libbitwuzla-rocky8${s}.so"
+            if [ ! -f "$src" ]; then echo "libbitwuzla${s}.so not found"; exit 1; fi
+            cp "$src" "$dest"
+            sha256sum "$dest" > "${dest}.sha256"
+          done
           sha256sum rocky8-artifacts/libbitwuzla-rocky8.so > rocky8-artifacts/libbitwuzla-rocky8.so.sha256
+          LIB_CADICAL_SO=$(realpath bitwuzla/build/subprojects/cadical-rel-2.1.2/src/libcadical.so)
+          if [ -z "$LIB_CADICAL_SO" ]; then echo "libcadical.so not found"; exit 1; fi
+          cp "$LIB_CADICAL_SO" rocky8-artifacts/libcadical-rocky8.so
 
       - uses: actions/upload-artifact@v4
         with:
@@ -100,11 +109,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p osx-arm64-artifacts
-          cp bitwuzla/COPYING osx-arm64-artifacts/COPYING
-          LIB_DYLIB=$(find bitwuzla/build -type f -name 'libbitwuzla*.dylib' | head -n1)
+          cp bitwuzla/COPYING osx-arm64-artifacts/bitwuzla.COPYING
+          cp bitwuzla/subprojects/cadical-rel-2.1.2/LICENSE osx-arm64-artifacts/cadical.LICENSE
+          LIB_DYLIB=$(find bitwuzla/build -type f -name 'libbitwuzla.dylib' | head -n1)
           if [ -z "$LIB_DYLIB" ]; then echo "libbitwuzla.dylib not found"; exit 1; fi
           cp "$LIB_DYLIB" osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib
           shasum -a 256 osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib > osx-arm64-artifacts/libbitwuzla-osx-arm64.dylib.sha256
+          for s in bb bv ls; do
+            f=$(find bitwuzla/build -type f \( -name "libbitwuzla${s}.dylib" -o -name "libbitwuzla${s}*.dylib" \) | head -n1)
+            if [ -z "${f:-}" ]; then echo "libbitwuzla${s}.dylib not found"; exit 1; fi
+            cp "$f" "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib"
+            shasum -a 256 "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib" > "osx-arm64-artifacts/libbitwuzla-osx-arm64${s}.dylib.sha256"
+          done
+          LIB_CADICAL_DYLIB=$(find bitwuzla/build -type f -name 'libcadical.dylib' | head -n1)
+          if [ -z "$LIB_CADICAL_DYLIB" ]; then echo "libcadical.dylib not found"; exit 1; fi
+          cp "$LIB_CADICAL_DYLIB" osx-arm64-artifacts/libcadical-osx-arm64.dylib
+          shasum -a 256 osx-arm64-artifacts/libcadical-osx-arm64.dylib > osx-arm64-artifacts/libcadical-osx-arm64.dylib.sha256
 
       - uses: actions/upload-artifact@v4
         with:
@@ -146,9 +166,26 @@ jobs:
           gh release create "$TAG_NAME" \
             bitwuzla-rocky8/libbitwuzla-rocky8.so \
             bitwuzla-rocky8/libbitwuzla-rocky8.so.sha256 \
-            bitwuzla-rocky8/COPYING \
+            bitwuzla-rocky8/libbitwuzla-rocky8bb.so \
+            bitwuzla-rocky8/libbitwuzla-rocky8bb.so.sha256 \
+            bitwuzla-rocky8/libbitwuzla-rocky8bv.so \
+            bitwuzla-rocky8/libbitwuzla-rocky8bv.so.sha256 \
+            bitwuzla-rocky8/libbitwuzla-rocky8ls.so \
+            bitwuzla-rocky8/libbitwuzla-rocky8ls.so.sha256 \
+            bitwuzla-rocky8/libcadical-rocky8.so \
+            bitwuzla-rocky8/libcadical-rocky8.so.sha256 \
+            bitwuzla-rocky8/bitwuzla.COPYING \
+            bitwuzla-rocky8/cadical.LICENSE \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bb.dylib \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bb.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bv.dylib \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bv.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64ls.dylib \
+            bitwuzla-osx-arm64/libbitwuzla-osx-arm64ls.dylib.sha256 \
+            bitwuzla-osx-arm64/libcadical-osx-arm64.dylib \
+            bitwuzla-osx-arm64/libcadical-osx-arm64.dylib.sha256 \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) Bitwuzla shared libraries."
 
