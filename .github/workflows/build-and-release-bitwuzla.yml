@@ -167,24 +167,24 @@ jobs:
           gh release create "$TAG_NAME" \
             bitwuzla-rocky8/libbitwuzla-rocky8.so \
             bitwuzla-rocky8/libbitwuzla-rocky8.so.sha256 \
-            bitwuzla-rocky8/libbitwuzla-rocky8bb.so \
-            bitwuzla-rocky8/libbitwuzla-rocky8bb.so.sha256 \
-            bitwuzla-rocky8/libbitwuzla-rocky8bv.so \
-            bitwuzla-rocky8/libbitwuzla-rocky8bv.so.sha256 \
-            bitwuzla-rocky8/libbitwuzla-rocky8ls.so \
-            bitwuzla-rocky8/libbitwuzla-rocky8ls.so.sha256 \
+            bitwuzla-rocky8/libbitwuzlabb-rocky8.so \
+            bitwuzla-rocky8/libbitwuzlabb-rocky8.so.sha256 \
+            bitwuzla-rocky8/libbitwuzlabv-rocky8.so \
+            bitwuzla-rocky8/libbitwuzlabv-rocky8.so.sha256 \
+            bitwuzla-rocky8/libbitwuzlals-rocky8.so \
+            bitwuzla-rocky8/libbitwuzlals-rocky8.so.sha256 \
             bitwuzla-rocky8/libcadical-rocky8.so \
             bitwuzla-rocky8/libcadical-rocky8.so.sha256 \
             bitwuzla-rocky8/bitwuzla.COPYING \
             bitwuzla-rocky8/cadical.LICENSE \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib \
             bitwuzla-osx-arm64/libbitwuzla-osx-arm64.dylib.sha256 \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bb.dylib \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bb.dylib.sha256 \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bv.dylib \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64bv.dylib.sha256 \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64ls.dylib \
-            bitwuzla-osx-arm64/libbitwuzla-osx-arm64ls.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzlabb-osx-arm64.dylib \
+            bitwuzla-osx-arm64/libbitwuzlabb-osx-arm64.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzlabv-osx-arm64.dylib \
+            bitwuzla-osx-arm64/libbitwuzlabv-osx-arm64.dylib.sha256 \
+            bitwuzla-osx-arm64/libbitwuzlals-osx-arm64.dylib \
+            bitwuzla-osx-arm64/libbitwuzlals-osx-arm64.dylib.sha256 \
             bitwuzla-osx-arm64/libcadical-osx-arm64.dylib \
             bitwuzla-osx-arm64/libcadical-osx-arm64.dylib.sha256 \
             --title "Release $TAG_NAME" \
