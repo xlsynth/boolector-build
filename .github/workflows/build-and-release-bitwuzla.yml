@@ -59,7 +59,7 @@ jobs:
           # License
           cp bitwuzla/COPYING rocky8-artifacts/COPYING
           # Locate shared library and copy with conventional name
-          LIB_SO=$(realpath $(find bitwuzla/build -type f -name 'libbitwuzla*.so' | head -n1))
+          LIB_SO=$(realpath $(find bitwuzla/build -type f -name 'libbitwuzla.so' | head -n1))
           if [ -z "$LIB_SO" ]; then echo "libbitwuzla.so not found"; exit 1; fi
           echo "$LIB_SO"
           echo "$(sha256sum $LIB_SO)"
