@@ -11,19 +11,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: debian:10
+    container: rockylinux:8
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up dependencies
         run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            git gcc g++ libc6-dev libstdc++-8-dev libssl-dev libffi-dev make curl cmake lld ca-certificates python3
+          dnf -y distro-sync --refresh
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled powertools || true
+          dnf -y groupinstall "Development Tools" --nobest
+          dnf -y module enable python39
+          dnf -y install git cmake python39 curl ca-certificates
+          echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Symlink python → python3
-        run: ln -s /usr/bin/python3 /usr/bin/python
+        run: ln -s /usr/bin/python3.9 /usr/bin/python || true
 
       - name: Download and build Boolector 3.2.2
         run: |
@@ -58,16 +62,15 @@ jobs:
 
       - name: Prepare artifact directory
         run: |
-          mkdir -p debian10-artifacts
-          cp boolector/COPYING debian10-artifacts/
-          cp boolector/build/lib/libboolector.so debian10-artifacts/libboolector-debian10.so
-          sha256sum debian10-artifacts/libboolector-debian10.so \
-            > debian10-artifacts/libboolector-debian10.so.sha256
+          mkdir -p rocky8-artifacts
+          cp boolector/COPYING rocky8-artifacts/
+          cp boolector/build/lib/libboolector.so rocky8-artifacts/libboolector-rocky8.so
+          sha256sum rocky8-artifacts/libboolector-rocky8.so > rocky8-artifacts/libboolector-rocky8.so.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: boolector-debian10
-          path: debian10-artifacts/
+          name: boolector-rocky8
+          path: rocky8-artifacts/
 
   build-osx-arm64:
     name: Build for macOS ARM64
@@ -144,8 +147,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: boolector-debian10
-          path: boolector-debian10
+          name: boolector-rocky8
+          path: boolector-rocky8
 
       - uses: actions/download-artifact@v4
         with:
@@ -154,8 +157,8 @@ jobs:
 
       - name: List downloaded files
         run: |
-          echo "--- Debian 10 artifacts ---"
-          ls -lR boolector-debian10
+          echo "--- Rocky Linux 8 artifacts ---"
+          ls -lR boolector-rocky8
           echo "--- macOS ARM64 artifacts ---"
           ls -lR boolector-osx-arm64
 
@@ -165,11 +168,11 @@ jobs:
           TAG_NAME: boolector-binaries-${{ github.sha }}
         run: |
           gh release create "$TAG_NAME" \
-            boolector-debian10/libboolector-debian10.so \
-            boolector-debian10/libboolector-debian10.so.sha256 \
-            boolector-debian10/COPYING \
+            boolector-rocky8/libboolector-rocky8.so \
+            boolector-rocky8/libboolector-rocky8.so.sha256 \
+            boolector-rocky8/COPYING \
             boolector-osx-arm64/libboolector-osx-arm64.dylib \
             boolector-osx-arm64/libboolector-osx-arm64.dylib.sha256 \
             boolector-osx-arm64/COPYING \
             --title "Release $TAG_NAME" \
-            --notes "Automated release of $TAG_NAME. Includes Debian 10 (amd64) and macOS (arm64) binaries."
+            --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) binaries."
