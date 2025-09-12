@@ -127,7 +127,6 @@ jobs:
       - name: Prepare artifact directory
         run: |
           mkdir -p osx-arm64-artifacts
-          cp boolector/COPYING osx-arm64-artifacts/
           LIB_DYLIB=$(find boolector/build -type f \( -name 'libboolector.dylib' -o -name 'libboolector.*.dylib' \) | head -n1)
           if [ -z "$LIB_DYLIB" ]; then echo "libboolector.dylib not found"; exit 1; fi
           cp "$LIB_DYLIB" osx-arm64-artifacts/libboolector-osx-arm64.dylib
@@ -178,6 +177,5 @@ jobs:
             boolector-rocky8/COPYING \
             boolector-osx-arm64/libboolector-osx-arm64.dylib \
             boolector-osx-arm64/libboolector-osx-arm64.dylib.sha256 \
-            boolector-osx-arm64/COPYING \
             --title "Release $TAG_NAME" \
             --notes "Automated release of $TAG_NAME. Includes Rocky 8 (x86_64) and macOS (arm64) binaries."
