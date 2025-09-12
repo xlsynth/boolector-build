@@ -7,6 +7,14 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      boolector_ref:
+        description: 'Boolector git ref to build (branch, tag, or SHA)'
+        required: false
+        default: 3.2.2
+
+env:
+  BOOLECTOR_REF: ${{ inputs.boolector_ref || '3.2.2' }}
 
 jobs:
   build-boolector-rocky8:
@@ -29,10 +37,11 @@ jobs:
       - name: Symlink python → python3
         run: ln -s /usr/bin/python3.9 /usr/bin/python || true
 
-      - name: Download and build Boolector 3.2.2
+      - name: Clone and build Boolector
         run: |
-          git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
+          git clone https://github.com/boolector/boolector
           cd boolector
+          git checkout --detach "$BOOLECTOR_REF"
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
@@ -88,10 +97,11 @@ jobs:
             fi
           done
 
-      - name: Download and build Boolector 3.2.2
+      - name: Clone and build Boolector
         run: |
-          git clone --branch 3.2.2 --depth 1 https://github.com/boolector/boolector
+          git clone https://github.com/boolector/boolector
           cd boolector
+          git checkout --detach "$BOOLECTOR_REF"
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
@@ -160,7 +170,7 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: boolector-binaries-${{ github.sha }}
+          TAG_NAME: boolector-binaries-${{ env.BOOLECTOR_REF }}
         run: |
           gh release create "$TAG_NAME" \
             boolector-rocky8/libboolector-rocky8.so \
