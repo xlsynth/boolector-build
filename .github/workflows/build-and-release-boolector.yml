@@ -32,8 +32,8 @@ jobs:
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
-          echo "Configuring Boolector with CMake (Python bindings disabled, setting policy version minimum)..."
-          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DBTOR_ENABLE_PYTHON=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          echo "Configuring Boolector with CMake (Python bindings disabled)..."
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DBTOR_ENABLE_PYTHON=OFF
           echo "Building Boolector..."
           make
 
@@ -78,7 +78,12 @@ jobs:
 
       - name: Set up dependencies
         run: |
-          brew install cmake openssl libffi python
+          brew update
+          for p in cmake openssl libffi python; do
+            if ! brew list --versions "$p" >/dev/null 2>&1; then
+              brew install "$p"
+            fi
+          done
 
       - name: Download and build Boolector 3.2.2
         run: |
@@ -87,8 +92,8 @@ jobs:
           ./contrib/setup-lingeling.sh
           ./contrib/setup-btor2tools.sh
           mkdir -p build && cd build
-          echo "Configuring Boolector with CMake (Python bindings disabled, setting policy version minimum)..."
-          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DBTOR_ENABLE_PYTHON=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          echo "Configuring Boolector with CMake (Python bindings disabled)..."
+          cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DBTOR_ENABLE_PYTHON=OFF
           echo "Building Boolector..."
           make
 
@@ -115,7 +120,9 @@ jobs:
         run: |
           mkdir -p osx-arm64-artifacts
           cp boolector/COPYING osx-arm64-artifacts/
-          cp boolector/build/lib/libboolector.dylib osx-arm64-artifacts/libboolector-osx-arm64.dylib
+          LIB_DYLIB=$(find boolector/build -type f \( -name 'libboolector.dylib' -o -name 'libboolector.*.dylib' \) | head -n1)
+          if [ -z "$LIB_DYLIB" ]; then echo "libboolector.dylib not found"; exit 1; fi
+          cp "$LIB_DYLIB" osx-arm64-artifacts/libboolector-osx-arm64.dylib
           shasum -a 256 osx-arm64-artifacts/libboolector-osx-arm64.dylib \
             > osx-arm64-artifacts/libboolector-osx-arm64.dylib.sha256
 
