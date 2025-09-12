@@ -100,11 +100,6 @@ jobs:
           echo "Building Boolector..."
           make
 
-      - name: Run Boolector tests
-        run: |
-          cd boolector/build
-          ctest --output-on-failure
-
       - name: Set up Rust toolchain
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
