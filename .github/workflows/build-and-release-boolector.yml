@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-boolector-rocky8:
     runs-on: ubuntu-latest
     container: rockylinux:8
 
@@ -72,7 +72,7 @@ jobs:
           name: boolector-rocky8
           path: rocky8-artifacts/
 
-  build-osx-arm64:
+  build-boolector-osx-arm64:
     name: Build for macOS ARM64
     runs-on: macos-14 # ARM64 runner
 
@@ -110,7 +110,7 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Test Rust bindings (boolector‑rs)
+      - name: Test Rust bindings (boolector-rs)
         run: |
           . "$HOME/.cargo/env"
           git clone https://github.com/cdisselkoen/boolector-rs
@@ -135,7 +135,7 @@ jobs:
           path: osx-arm64-artifacts/
 
   release:
-    needs: [build, build-osx-arm64]
+    needs: [build-boolector-rocky8, build-boolector-osx-arm64]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
